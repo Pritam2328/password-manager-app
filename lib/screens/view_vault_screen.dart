@@ -28,12 +28,6 @@ class ViewVaultScreen extends StatelessWidget {
     shareText += 'Category: ${vaultItem.category}\n';
     shareText += 'Username: ${vaultItem.username}\n';
     shareText += 'Password: ${vaultItem.password}\n';
-    if (vaultItem.note.isNotEmpty) shareText += 'Note: ${vaultItem.note}\n';
-    
-    for (var field in vaultItem.customFields) {
-      shareText += '${field.title}: ${field.value}\n';
-    }
-    
     await Share.share(shareText);
   }
 
@@ -46,10 +40,6 @@ class ViewVaultScreen extends StatelessWidget {
       content += 'Category: ${vaultItem.category}\n';
       content += 'Username: ${vaultItem.username}\n';
       content += 'Password: ${vaultItem.password}\n';
-      if (vaultItem.note.isNotEmpty) content += 'Note: ${vaultItem.note}\n';
-      for (var field in vaultItem.customFields) {
-        content += '${field.title}: ${field.value}\n';
-      }
       
       await file.writeAsString(content);
       
@@ -65,7 +55,7 @@ class ViewVaultScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving file'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Error saving file'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -111,70 +101,83 @@ class ViewVaultScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.cardLight,
+                  color: AppColors.accent.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border),
                   boxShadow: [
                     BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
                   ],
                 ),
-                child: Icon(vaultItem.icon, size: 48, color: AppColors.headerDark),
+                child: Icon(vaultItem.icon, size: 48, color: AppColors.accent),
               ),
             ),
             const SizedBox(height: 32),
-            _buildReadOnlyField(context, 'Category', vaultItem.category),
-            _buildReadOnlyField(context, 'Username', vaultItem.username),
-            _buildReadOnlyField(context, 'Password', vaultItem.password, isPassword: true),
-            if (vaultItem.note.isNotEmpty) _buildReadOnlyField(context, 'Note', vaultItem.note),
-            ...vaultItem.customFields.map((field) => _buildReadOnlyField(context, field.title, field.value)),
+
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 15),
+                  _buildReadOnlyField(context, 'Category', vaultItem.category, CupertinoIcons.tag),
+                  const SizedBox(height: 15),
+                  _buildReadOnlyField(context, 'Username / Email', vaultItem.username, CupertinoIcons.person_fill),
+                  const SizedBox(height: 15),
+                  _buildReadOnlyField(context, 'Password', vaultItem.password, CupertinoIcons.lock_fill, isPassword: true),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReadOnlyField(BuildContext context, String title, String value, {bool isPassword = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.textGrey,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _buildReadOnlyField(BuildContext context, String title, String value, IconData icon, {bool isPassword = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: Colors.grey.shade500,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.cardLight,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    isPassword ? '••••••••••••' : value,
-                    style: const TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 16,
-                    ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.grey.shade400, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isPassword ? '••••••••••••' : value,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 16,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _copyToClipboard(context, value, title),
-                  child: const Icon(CupertinoIcons.doc_on_clipboard, color: AppColors.accent, size: 20),
-                ),
-              ],
-            ),
+              ),
+              GestureDetector(
+                onTap: () => _copyToClipboard(context, value, title),
+                child: const Icon(CupertinoIcons.doc_on_clipboard, color: AppColors.accent, size: 20),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

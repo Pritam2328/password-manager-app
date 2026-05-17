@@ -1,9 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import '../utils/app_colors.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/vault_provider.dart';
-import '../widgets/vault_list_tile.dart';
+import '../utils/app_colors.dart';
+import '../models/vault_item.dart';
 import 'create_vault_screen.dart';
 import 'view_vault_screen.dart';
 
@@ -11,12 +12,12 @@ class VaultListScreen extends StatefulWidget {
   const VaultListScreen({Key? key}) : super(key: key);
 
   @override
-  State<VaultListScreen> createState() => _VaultListScreenState();
+  _VaultListScreenState createState() => _VaultListScreenState();
 }
 
 class _VaultListScreenState extends State<VaultListScreen> {
-  int _selectedFilter = 0;
-  final List<String> _filters = ['All', 'Recent', 'Favourite', 'Last Edit'];
+  int _selectedFilterIndex = 0;
+  final List<String> _filters = ["All", "Recent", "Favourite", "Last Edit"];
 
   @override
   Widget build(BuildContext context) {
@@ -29,138 +30,210 @@ class _VaultListScreenState extends State<VaultListScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: AppColors.textDark),
+          icon: const Icon(CupertinoIcons.back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'My Vaults',
-          style: TextStyle(
-            color: AppColors.textDark,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          "My Vaults",
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.add, color: AppColors.accent),
-            onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const CreateVaultScreen(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-            child: Container(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            // Search Bar
+            Container(
               decoration: BoxDecoration(
-                color: AppColors.cardLight,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
                 ],
               ),
-              child: const TextField(
-                autofocus: false, // Critical Fix
-                style: TextStyle(color: AppColors.textDark),
+              child: TextField(
+                autofocus: false, // Prevents keyboard auto-open
                 decoration: InputDecoration(
-                  hintText: 'Search vaults...',
-                  hintStyle: TextStyle(color: AppColors.textGrey),
-                  prefixIcon: Icon(CupertinoIcons.search, color: AppColors.textGrey),
+                  hintText: "Search your vaults",
+                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  prefixIcon: const Icon(CupertinoIcons.search, color: Colors.grey),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
-          ),
-          SizedBox(
-            height: 60,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              itemCount: _filters.length,
-              itemBuilder: (context, index) {
-                final isSelected = _selectedFilter == index;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = index;
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.headerDark : AppColors.cardLight,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? AppColors.headerDark : AppColors.border,
+            const SizedBox(height: 20),
+            
+            // Filter Chips
+            SizedBox(
+              height: 35,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _filters.length,
+                itemBuilder: (context, index) {
+                  bool isSelected = _selectedFilterIndex == index;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedFilterIndex = index),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.accent : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: isSelected ? [
+                          BoxShadow(color: AppColors.accent.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))
+                        ] : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          _filters[index],
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey.shade600,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 13
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      _filters[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textGrey,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: items.isEmpty
+            const SizedBox(height: 20),
+
+            // Vaults List
+            Expanded(
+              child: items.isEmpty
                 ? Center(
                     child: Text('No vaults created yet.', style: TextStyle(color: AppColors.textGrey)),
                   )
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      return VaultListTile(
-                        item: item,
-                        onEdit: () {
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) => CreateVaultScreen(vaultItem: item),
-                            ),
-                          );
-                        },
-                        onDelete: () {
-                          context.read<VaultProvider>().deleteVault(item.id);
-                        },
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) => ViewVaultScreen(vaultItem: item),
-                            ),
-                          );
-                        },
-                      );
+                      // Simple hash function to generate consistent color per item if desired
+                      final colors = [Colors.orange, Colors.redAccent, Colors.blue, Colors.purple, Colors.green];
+                      final iconColor = colors[item.title.hashCode % colors.length];
+
+                      return _buildVaultItem(context, item, iconColor);
                     },
                   ),
-          ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVaultItem(BuildContext context, VaultItem item, Color iconColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
         ],
+      ),
+      child: Slidable(
+        key: ValueKey(item.id),
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          extentRatio: 0.45,
+          children: [
+            CustomSlidableAction(
+              onPressed: (_) {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => CreateVaultScreen(vaultItem: item),
+                  ),
+                );
+              },
+              backgroundColor: Colors.transparent,
+              foregroundColor: const Color(0xFF3B82F6),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.edit_rounded),
+              ),
+            ),
+            CustomSlidableAction(
+              onPressed: (_) {
+                context.read<VaultProvider>().deleteVault(item.id);
+              },
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppColors.error,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_outline_rounded),
+              ),
+            ),
+          ],
+        ),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (context) => ViewVaultScreen(vaultItem: item)),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                // Icon Box
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(item.icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                // Text Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
+                      const SizedBox(height: 4),
+                      Text(item.username.isNotEmpty ? item.username : "No username", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: List.generate(8, (index) => const Padding(
+                          padding: EdgeInsets.only(right: 3.0),
+                          child: Icon(CupertinoIcons.circle_fill, size: 6, color: Colors.black38),
+                        )),
+                      )
+                    ],
+                  ),
+                ),
+                // Subtle Swipe Hint & Heart
+                Row(
+                  children: [
+                    const Icon(CupertinoIcons.heart_fill, color: AppColors.accent, size: 18),
+                    const SizedBox(width: 12),
+                    Text("< Swipe", style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

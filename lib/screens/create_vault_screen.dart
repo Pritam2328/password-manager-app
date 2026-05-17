@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:math';
 import '../models/vault_item.dart';
 import '../utils/app_colors.dart';
 import '../providers/vault_provider.dart';
@@ -25,14 +24,14 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     CupertinoIcons.device_phone_portrait,
     CupertinoIcons.creditcard,
     CupertinoIcons.mail,
-    CupertinoIcons.padlock_solid,
+    CupertinoIcons.lock_fill,
   ];
 
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-  bool _obscurePassword = true;
 
-  List<CustomField> _customFields = [];
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -40,62 +39,24 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     isEditMode = widget.vaultItem != null;
 
     if (isEditMode) {
+      _titleController.text = widget.vaultItem!.title;
+      _usernameController.text = widget.vaultItem!.username;
       _passwordController.text = widget.vaultItem!.password;
-      _noteController.text = widget.vaultItem!.note;
       _selectedCategory = widget.vaultItem!.category;
       
       int iconIndex = _icons.indexOf(widget.vaultItem!.icon);
       if (iconIndex != -1) {
         _selectedIconIndex = iconIndex;
       }
-      
-      _customFields = List.from(widget.vaultItem!.customFields);
-    } else {
-      _customFields.add(CustomField(title: 'Title', value: ''));
-      _customFields.add(CustomField(title: 'Username', value: ''));
     }
   }
 
   @override
   void dispose() {
+    _titleController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
-    _noteController.dispose();
     super.dispose();
-  }
-
-  void _addCustomField() {
-    String tempTitle = '';
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Add Custom Field'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child: CupertinoTextField(
-            placeholder: 'Field Title (e.g., URL, PIN)',
-            onChanged: (val) => tempTitle = val,
-            style: const TextStyle(color: AppColors.textDark),
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textGrey)),
-            onPressed: () => Navigator.pop(context),
-          ),
-          CupertinoDialogAction(
-            child: const Text('Add', style: TextStyle(color: AppColors.accent)),
-            onPressed: () {
-              if (tempTitle.isNotEmpty) {
-                setState(() {
-                  _customFields.add(CustomField(title: tempTitle, value: ''));
-                });
-              }
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   void _addCategory() {
@@ -135,8 +96,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
   }
 
   void _saveVault() {
-    // Basic validation
-    if (_passwordController.text.isEmpty || _customFields.isEmpty || _customFields[0].value.isEmpty) {
+    if (_titleController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Title and Password are required'), backgroundColor: AppColors.error),
       );
@@ -145,13 +105,13 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
 
     final newItem = VaultItem(
       id: isEditMode ? widget.vaultItem!.id : DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _customFields.firstWhere((f) => f.title.toLowerCase() == 'title' || f.title.toLowerCase().contains('name'), orElse: () => _customFields[0]).value,
+      title: _titleController.text,
       category: _selectedCategory,
-      username: _customFields.length > 1 ? _customFields[1].value : '',
+      username: _usernameController.text,
       password: _passwordController.text,
-      note: _noteController.text,
+      note: '', // simplified for UI design
       icon: _icons[_selectedIconIndex],
-      customFields: _customFields,
+      customFields: [], // simplified for UI design
     );
 
     if (isEditMode) {
@@ -176,326 +136,203 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          isEditMode ? 'Edit the Password' : 'Create New Vault',
-          style: const TextStyle(
-            color: AppColors.textDark,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          isEditMode ? "Edit Vault" : "Create New Vaults",
+          style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Change Icon',
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+            // Icon Selector
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 60, height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 60,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          ...List.generate(_icons.length, (index) {
-                            final isSelected = _selectedIconIndex == index;
-                            return GestureDetector(
-                              onTap: () => setState(() => _selectedIconIndex = index),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 16),
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.accent : AppColors.cardLight,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isSelected ? AppColors.accent : AppColors.border,
-                                  ),
-                                ),
-                                child: Icon(
-                                  _icons[index],
-                                  color: isSelected ? Colors.white : AppColors.textGrey,
-                                ),
-                              ),
-                            );
-                          }),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              width: 60,
-                              decoration: BoxDecoration(
-                                color: AppColors.cardLight,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: const Icon(CupertinoIcons.photo, color: AppColors.textGrey),
-                            ),
+                    child: Icon(_icons[_selectedIconIndex], color: AppColors.accent, size: 30),
+                  ),
+                  const SizedBox(height: 8),
+                  Text("Change Icon", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  const SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_icons.length, (index) {
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedIconIndex = index),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: _selectedIconIndex == index 
+                              ? Border.all(color: AppColors.accent, width: 1.5) 
+                              : Border.all(color: Colors.transparent),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Details',
-                          style: TextStyle(
-                            color: AppColors.textDark,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          child: Icon(_icons[index], size: 20, color: Colors.grey.shade600),
                         ),
-                        IconButton(
-                          icon: const Icon(CupertinoIcons.add_circled_solid, color: AppColors.accent),
-                          onPressed: _addCustomField,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: _customFields.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: _buildInputField(
-                            title: _customFields[index].title,
-                            initialValue: _customFields[index].value,
-                            onChanged: (val) {
-                              _customFields[index] = CustomField(title: _customFields[index].title, value: val);
-                            },
-                            onDelete: () {
-                              setState(() {
-                                _customFields.removeAt(index);
-                              });
-                            },
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 8),
-                    const Divider(color: AppColors.border),
-                    const SizedBox(height: 24),
-
-                    const Text(
-                      'Mandatory Fields',
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      title: 'Password',
-                      controller: _passwordController,
-                      isPassword: true,
-                      isMandatory: true,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      title: 'Note (Optional)',
-                      controller: _noteController,
-                      isMandatory: true,
-                      maxLines: 3,
-                    ),
-
-                    const SizedBox(height: 32),
-                    const Text(
-                      'Category',
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        ...categories.map((category) {
-                          final isSelected = _selectedCategory == category;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedCategory = category),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.accent.withOpacity(0.1) : AppColors.cardLight,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.accent : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                category,
-                                style: TextStyle(
-                                  color: isSelected ? AppColors.accent : AppColors.textGrey,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        // Add Category Button
-                        GestureDetector(
-                          onTap: _addCategory,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardLight,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(CupertinoIcons.add, size: 16, color: AppColors.accent),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add',
-                                  style: TextStyle(
-                                    color: AppColors.textDark,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      );
+                    }),
+                  )
+                ],
               ),
             ),
-            
+            const SizedBox(height: 35),
+
+            // Form Container
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.cardLight,
-                border: Border(top: BorderSide(color: AppColors.border)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
               ),
-              child: Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Credential", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 15),
+                  
+                  _buildInputField(
+                    "Site Address / Title", 
+                    "e.g., https://dribbble.com", 
+                    CupertinoIcons.globe,
+                    _titleController,
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  _buildInputField(
+                    "User Name / Email", 
+                    "hello@designmonk.com", 
+                    CupertinoIcons.person_fill,
+                    _usernameController,
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  _buildPasswordField(
+                    "Password", 
+                    "••••••••••••••",
+                    _passwordController,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+
+            // Bottom Category Selector
+            const Text("Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ...categories.map((category) {
+                    return _buildCategoryChip(category, _selectedCategory == category);
+                  }).toList(),
+                  GestureDetector(
+                    onTap: _addCategory,
+                    child: _buildCategoryChip("Add +", false, isAddButton: true),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // Create Button
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _saveVault,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 5,
+                  shadowColor: AppColors.accent.withOpacity(0.5),
                 ),
-                child: ElevatedButton(
-                  onPressed: _saveVault,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    isEditMode ? 'Save Changes' : 'Create the vault',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                child: Text(
+                  isEditMode ? "Save Changes" : "Create the vault", 
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
                 ),
               ),
             ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInputField({
-    required String title,
-    String? initialValue,
-    TextEditingController? controller,
-    bool isPassword = false,
-    bool isMandatory = false,
-    VoidCallback? onDelete,
-    Function(String)? onChanged,
-    int maxLines = 1,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.textGrey,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (!isMandatory && onDelete != null)
-              GestureDetector(
-                onTap: onDelete,
-                child: const Icon(CupertinoIcons.minus_circle, color: AppColors.error, size: 20),
-              ),
-          ],
+  Widget _buildInputField(String label, String hint, IconData icon, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: AppColors.textDark),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        prefixIcon: Icon(icon, color: Colors.grey.shade400, size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField(String label, String hint, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      obscureText: _obscurePassword,
+      style: const TextStyle(color: AppColors.textDark),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        suffixIcon: TextButton(
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          }, 
+          child: Text(_obscurePassword ? "View" : "Hide", style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold))
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.cardLight,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: TextFormField(
-            controller: controller,
-            initialValue: controller == null ? initialValue : null,
-            obscureText: isPassword && _obscurePassword,
-            maxLines: isPassword ? 1 : maxLines,
-            onChanged: onChanged,
-            style: const TextStyle(color: AppColors.textDark),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
-              suffixIcon: isPassword
-                  ? IconButton(
-                      icon: Icon(
-                        _obscurePassword ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
-                        color: AppColors.textGrey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    )
-                  : null,
-            ),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String title, bool isSelected, {bool isAddButton = false}) {
+    return GestureDetector(
+      onTap: isAddButton ? null : () => setState(() => _selectedCategory = title),
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.transparent,
+          border: Border.all(color: isSelected ? AppColors.accent : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title, 
+          style: TextStyle(
+            color: isSelected ? AppColors.accent : Colors.grey.shade600,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-      ],
+      ),
     );
   }
 }
