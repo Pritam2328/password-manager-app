@@ -1,278 +1,272 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
-import '../widgets/category_card.dart';
+import '../providers/vault_provider.dart';
+import '../widgets/vault_list_tile.dart';
 import 'vault_list_screen.dart';
+import 'create_vault_screen.dart';
+import 'view_vault_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final vaultProvider = context.watch<VaultProvider>();
+    final recentItems = vaultProvider.items.take(3).toList();
+
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Header
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 24,
-                    backgroundImage: NetworkImage(
-                        'https://i.pravatar.cc/150?img=11'), // Dummy avatar
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Welcome back again!',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
+      backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (context) => const CreateVaultScreen()),
+          );
+        },
+        backgroundColor: AppColors.accent,
+        elevation: 4,
+        child: const Icon(CupertinoIcons.add, color: Colors.white, size: 28),
+      ),
+      body: Column(
+        children: [
+          // Dark Curved Header
+          Container(
+            padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 40),
+            decoration: const BoxDecoration(
+              color: AppColors.headerDark,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Welcome back,',
+                          style: TextStyle(
+                            color: AppColors.textGrey,
+                            fontSize: 14,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          vaultProvider.userName,
+                          style: const TextStyle(
+                            color: AppColors.textLight,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Alex Carter',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: IconButton(
+                        icon: const Icon(CupertinoIcons.bell, color: AppColors.textLight, size: 22),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                // Search Bar inside header
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.cardDark,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(CupertinoIcons.bell,
-                          color: AppColors.textPrimary, size: 22),
-                      onPressed: () {},
+                  child: const TextField(
+                    style: TextStyle(color: AppColors.textDark),
+                    decoration: InputDecoration(
+                      hintText: 'Search passwords, notes...',
+                      hintStyle: TextStyle(color: AppColors.textGrey),
+                      prefixIcon: Icon(CupertinoIcons.search, color: AppColors.textGrey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 32),
+                ),
+              ],
+            ),
+          ),
 
-              // Security Shield Widget
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: AppColors.cardGradient,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: AppColors.border.withOpacity(0.5)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: AppColors.accentGradient,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withOpacity(0.4),
-                            blurRadius: 15,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.shield_lefthalf_fill,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Vault Secured',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'All your passwords are encrypted and safe.',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Search Bar
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const TextField(
-                  style: TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'Search passwords, notes...',
-                    hintStyle: TextStyle(color: AppColors.textSecondary),
-                    prefixIcon: Icon(CupertinoIcons.search,
-                        color: AppColors.textSecondary),
-                    border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Categories
-              const Text(
-                'Categories',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 140,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  children: const [
-                    CategoryCard(
-                        icon: CupertinoIcons.globe,
-                        title: 'Browser',
-                        count: 24),
-                    CategoryCard(
-                        icon: CupertinoIcons.device_phone_portrait,
-                        title: 'Mobile App',
-                        count: 12),
-                    CategoryCard(
-                        icon: CupertinoIcons.creditcard,
-                        title: 'Payment',
-                        count: 8),
-                    CategoryCard(
-                        icon: CupertinoIcons.lock_shield,
-                        title: 'Secure Note',
-                        count: 5),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Recently Used
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Recently Used',
+                    'Categories',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: AppColors.textDark,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                            builder: (context) => const VaultListScreen()),
-                      );
-                    },
-                    child: const Text(
-                      'See More',
-                      style: TextStyle(color: AppColors.accent),
-                    ),
+                  const SizedBox(height: 16),
+                  
+                  // Compact Categories Layout (Grid)
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.5,
+                    children: [
+                      _buildCategoryCard('Browser', CupertinoIcons.globe, 12),
+                      _buildCategoryCard('Mobile App', CupertinoIcons.device_phone_portrait, 8),
+                      _buildCategoryCard('Payment', CupertinoIcons.creditcard, 4),
+                      _buildCategoryCard('Secure Note', CupertinoIcons.lock_shield, 2),
+                    ],
                   ),
+                  
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Recently Used',
+                        style: TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(builder: (context) => const VaultListScreen()),
+                          );
+                        },
+                        child: const Text(
+                          'See More',
+                          style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  if (recentItems.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32.0),
+                        child: Text(
+                          'No recent items found.',
+                          style: TextStyle(color: AppColors.textGrey),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recentItems.length,
+                      itemBuilder: (context, index) {
+                        final item = recentItems[index];
+                        return VaultListTile(
+                          item: item,
+                          onEdit: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => CreateVaultScreen(vaultItem: item),
+                              ),
+                            );
+                          },
+                          onDelete: () {
+                            context.read<VaultProvider>().deleteVault(item.id);
+                          },
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => ViewVaultScreen(vaultItem: item),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                 ],
               ),
-              const SizedBox(height: 16),
-              // Dummy list for recently used
-              _buildRecentItem(
-                  'Netflix', 'alex.carter@mail.com', Icons.movie_creation_rounded),
-              _buildRecentItem(
-                  'Dribbble', 'designer_alex', Icons.sports_basketball_rounded),
-              _buildRecentItem(
-                  'Bank App', 'card ending **92', Icons.account_balance_rounded),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildRecentItem(String title, String subtitle, IconData icon) {
+  Widget _buildCategoryCard(String title, IconData icon, int count) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: AppColors.cardLight,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: AppColors.textPrimary, size: 24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
+                child: Icon(icon, color: AppColors.accent, size: 20),
+              ),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  color: AppColors.textGrey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
             ),
           ),
         ],

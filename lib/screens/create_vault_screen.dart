@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'dart:math';
 import '../models/vault_item.dart';
 import '../utils/app_colors.dart';
+import '../providers/vault_provider.dart';
 
 class CreateVaultScreen extends StatefulWidget {
   final VaultItem? vaultItem;
@@ -23,13 +26,6 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     CupertinoIcons.creditcard,
     CupertinoIcons.mail,
     CupertinoIcons.padlock_solid,
-  ];
-
-  final List<String> _categories = [
-    'Browser',
-    'Mobile App',
-    'Payment',
-    'Secure Note'
   ];
 
   final TextEditingController _passwordController = TextEditingController();
@@ -54,10 +50,6 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
       }
       
       _customFields = List.from(widget.vaultItem!.customFields);
-      if (_customFields.isEmpty) {
-        _customFields.add(CustomField(title: 'Website / App Name', value: widget.vaultItem!.title));
-        _customFields.add(CustomField(title: 'Username / Email', value: widget.vaultItem!.username));
-      }
     } else {
       _customFields.add(CustomField(title: 'Title', value: ''));
       _customFields.add(CustomField(title: 'Username', value: ''));
@@ -82,12 +74,12 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
           child: CupertinoTextField(
             placeholder: 'Field Title (e.g., URL, PIN)',
             onChanged: (val) => tempTitle = val,
-            style: const TextStyle(color: Colors.black),
+            style: const TextStyle(color: AppColors.textDark),
           ),
         ),
         actions: [
           CupertinoDialogAction(
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textGrey)),
             onPressed: () => Navigator.pop(context),
           ),
           CupertinoDialogAction(
@@ -106,21 +98,87 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     );
   }
 
+  void _addCategory() {
+    String newCategory = '';
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Add Category'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: CupertinoTextField(
+            placeholder: 'New Category Name',
+            onChanged: (val) => newCategory = val,
+            style: const TextStyle(color: AppColors.textDark),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textGrey)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            child: const Text('Add', style: TextStyle(color: AppColors.accent)),
+            onPressed: () {
+              if (newCategory.isNotEmpty) {
+                context.read<VaultProvider>().addCategory(newCategory);
+                setState(() {
+                  _selectedCategory = newCategory;
+                });
+              }
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveVault() {
+    // Basic validation
+    if (_passwordController.text.isEmpty || _customFields.isEmpty || _customFields[0].value.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and Password are required'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final newItem = VaultItem(
+      id: isEditMode ? widget.vaultItem!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _customFields.firstWhere((f) => f.title.toLowerCase() == 'title' || f.title.toLowerCase().contains('name'), orElse: () => _customFields[0]).value,
+      category: _selectedCategory,
+      username: _customFields.length > 1 ? _customFields[1].value : '',
+      password: _passwordController.text,
+      note: _noteController.text,
+      icon: _icons[_selectedIconIndex],
+      customFields: _customFields,
+    );
+
+    if (isEditMode) {
+      context.read<VaultProvider>().updateVault(newItem);
+    } else {
+      context.read<VaultProvider>().addVault(newItem);
+    }
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final categories = context.watch<VaultProvider>().categories;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: AppColors.textPrimary),
+          icon: const Icon(CupertinoIcons.back, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           isEditMode ? 'Edit the Password' : 'Create New Vault',
           style: const TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.textDark,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -140,7 +198,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                     const Text(
                       'Change Icon',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.textDark,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -159,7 +217,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                                 margin: const EdgeInsets.only(right: 16),
                                 width: 60,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.accent : AppColors.cardDark,
+                                  color: isSelected ? AppColors.accent : AppColors.cardLight,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected ? AppColors.accent : AppColors.border,
@@ -167,23 +225,21 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                                 ),
                                 child: Icon(
                                   _icons[index],
-                                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                                  color: isSelected ? Colors.white : AppColors.textGrey,
                                 ),
                               ),
                             );
                           }),
                           GestureDetector(
-                            onTap: () {
-                              // Gallery upload mock
-                            },
+                            onTap: () {},
                             child: Container(
                               width: 60,
                               decoration: BoxDecoration(
-                                color: AppColors.cardDark,
+                                color: AppColors.cardLight,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+                                border: Border.all(color: AppColors.border),
                               ),
-                              child: const Icon(CupertinoIcons.photo, color: AppColors.textSecondary),
+                              child: const Icon(CupertinoIcons.photo, color: AppColors.textGrey),
                             ),
                           ),
                         ],
@@ -197,7 +253,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                         const Text(
                           'Details',
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: AppColors.textDark,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -220,6 +276,9 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                           child: _buildInputField(
                             title: _customFields[index].title,
                             initialValue: _customFields[index].value,
+                            onChanged: (val) {
+                              _customFields[index] = CustomField(title: _customFields[index].title, value: val);
+                            },
                             onDelete: () {
                               setState(() {
                                 _customFields.removeAt(index);
@@ -237,7 +296,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                     const Text(
                       'Mandatory Fields',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.textDark,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -261,7 +320,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                     const Text(
                       'Category',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.textDark,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -270,29 +329,57 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
-                      children: _categories.map((category) {
-                        final isSelected = _selectedCategory == category;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedCategory = category),
+                      children: [
+                        ...categories.map((category) {
+                          final isSelected = _selectedCategory == category;
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedCategory = category),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.accent.withOpacity(0.1) : AppColors.cardLight,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.accent : AppColors.border,
+                                ),
+                              ),
+                              child: Text(
+                                category,
+                                style: TextStyle(
+                                  color: isSelected ? AppColors.accent : AppColors.textGrey,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        // Add Category Button
+                        GestureDetector(
+                          onTap: _addCategory,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.accent.withOpacity(0.15) : AppColors.cardDark,
+                              color: AppColors.cardLight,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected ? AppColors.accent : AppColors.border.withOpacity(0.5),
-                              ),
+                              border: Border.all(color: AppColors.border, style: BorderStyle.solid),
                             ),
-                            child: Text(
-                              category,
-                              style: TextStyle(
-                                color: isSelected ? AppColors.accent : AppColors.textSecondary,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(CupertinoIcons.add, size: 16, color: AppColors.accent),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Add',
+                                  style: TextStyle(
+                                    color: AppColors.textDark,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -302,8 +389,8 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.background,
-                border: Border(top: BorderSide(color: AppColors.border.withOpacity(0.5))),
+                color: AppColors.cardLight,
+                border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: Container(
                 width: double.infinity,
@@ -320,9 +407,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: _saveVault,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -353,6 +438,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     bool isPassword = false,
     bool isMandatory = false,
     VoidCallback? onDelete,
+    Function(String)? onChanged,
     int maxLines = 1,
   }) {
     return Column(
@@ -364,7 +450,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             Text(
               title,
               style: const TextStyle(
-                color: AppColors.textSecondary,
+                color: AppColors.textGrey,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -372,14 +458,14 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             if (!isMandatory && onDelete != null)
               GestureDetector(
                 onTap: onDelete,
-                child: const Icon(CupertinoIcons.minus_circle, color: Colors.redAccent, size: 20),
+                child: const Icon(CupertinoIcons.minus_circle, color: AppColors.error, size: 20),
               ),
           ],
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: AppColors.cardLight,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
           ),
@@ -388,7 +474,8 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             initialValue: controller == null ? initialValue : null,
             obscureText: isPassword && _obscurePassword,
             maxLines: isPassword ? 1 : maxLines,
-            style: const TextStyle(color: AppColors.textPrimary),
+            onChanged: onChanged,
+            style: const TextStyle(color: AppColors.textDark),
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
@@ -396,7 +483,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                   ? IconButton(
                       icon: Icon(
                         _obscurePassword ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textGrey,
                       ),
                       onPressed: () {
                         setState(() {

@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../models/vault_item.dart';
+import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
+import '../providers/vault_provider.dart';
 import '../widgets/vault_list_tile.dart';
 import 'create_vault_screen.dart';
+import 'view_vault_screen.dart';
 
 class VaultListScreen extends StatefulWidget {
   const VaultListScreen({Key? key}) : super(key: key);
@@ -16,56 +18,24 @@ class _VaultListScreenState extends State<VaultListScreen> {
   int _selectedFilter = 0;
   final List<String> _filters = ['All', 'Recent', 'Favourite', 'Last Edit'];
 
-  final List<VaultItem> _items = [
-    VaultItem(
-      id: '1',
-      title: 'Netflix',
-      category: 'Browser',
-      username: 'alex.carter@mail.com',
-      password: 'dummy_password_123',
-      icon: Icons.movie_creation_rounded,
-    ),
-    VaultItem(
-      id: '2',
-      title: 'Dribbble',
-      category: 'Browser',
-      username: 'designer_alex',
-      password: 'dribbble_password_456',
-      icon: Icons.sports_basketball_rounded,
-    ),
-    VaultItem(
-      id: '3',
-      title: 'Bank App',
-      category: 'Payment',
-      username: 'card ending **92',
-      password: 'bank_password_789',
-      icon: Icons.account_balance_rounded,
-    ),
-    VaultItem(
-      id: '4',
-      title: 'Twitter',
-      category: 'Mobile App',
-      username: '@alex_designs',
-      password: 'twitter_password_000',
-      icon: CupertinoIcons.chat_bubble_text,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final vaultProvider = context.watch<VaultProvider>();
+    final items = vaultProvider.items;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: AppColors.textPrimary),
+          icon: const Icon(CupertinoIcons.back, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'My Vaults',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.textDark,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -91,20 +61,26 @@ class _VaultListScreenState extends State<VaultListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
+                color: AppColors.cardLight,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: const TextField(
-                style: TextStyle(color: AppColors.textPrimary),
+                autofocus: false, // Critical Fix
+                style: TextStyle(color: AppColors.textDark),
                 decoration: InputDecoration(
                   hintText: 'Search vaults...',
-                  hintStyle: TextStyle(color: AppColors.textSecondary),
-                  prefixIcon: Icon(CupertinoIcons.search,
-                      color: AppColors.textSecondary),
+                  hintStyle: TextStyle(color: AppColors.textGrey),
+                  prefixIcon: Icon(CupertinoIcons.search, color: AppColors.textGrey),
                   border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
               ),
             ),
@@ -129,24 +105,17 @@ class _VaultListScreenState extends State<VaultListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.accent.withOpacity(0.15)
-                          : AppColors.cardDark,
+                      color: isSelected ? AppColors.headerDark : AppColors.cardLight,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected
-                            ? AppColors.accent
-                            : AppColors.border.withOpacity(0.5),
+                        color: isSelected ? AppColors.headerDark : AppColors.border,
                       ),
                     ),
                     child: Text(
                       _filters[index],
                       style: TextStyle(
-                        color: isSelected
-                            ? AppColors.accent
-                            : AppColors.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? Colors.white : AppColors.textGrey,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -156,32 +125,40 @@ class _VaultListScreenState extends State<VaultListScreen> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                return VaultListTile(
-                  item: item,
-                  onEdit: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => CreateVaultScreen(
-                          vaultItem: item,
-                        ),
-                      ),
-                    );
-                  },
-                  onDelete: () {
-                    setState(() {
-                      _items.removeAt(index);
-                    });
-                  },
-                );
-              },
-            ),
+            child: items.isEmpty
+                ? Center(
+                    child: Text('No vaults created yet.', style: TextStyle(color: AppColors.textGrey)),
+                  )
+                : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return VaultListTile(
+                        item: item,
+                        onEdit: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => CreateVaultScreen(vaultItem: item),
+                            ),
+                          );
+                        },
+                        onDelete: () {
+                          context.read<VaultProvider>().deleteVault(item.id);
+                        },
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => ViewVaultScreen(vaultItem: item),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),

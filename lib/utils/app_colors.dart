@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color background = Color(0xFF0B0B0F);
-  static const Color cardDark = Color(0xFF181822);
-  static const Color accent = Color(0xFFF9325F);
-  static const Color accentDark = Color(0xFFC71A43);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF8B8B99);
-  static const Color border = Color(0xFF2A2A35);
-  static const Color success = Color(0xFF4ADE80);
+  // Main Theme Colors (White Background with Dark Header)
+  static const Color background = Color(0xFFF8F9FA); // Very light grey/white
+  static const Color headerDark = Color(0xFF1C1C24); // Premium dark for top header
+  static const Color cardLight = Color(0xFFFFFFFF); // Pure white for cards
+  
+  // Accents
+  static const Color accent = Color(0xFFE11D48); // Pink/Reddish accent
+  static const Color accentDark = Color(0xFFBE123C);
+  
+  // Text Colors
+  static const Color textDark = Color(0xFF111827); // Dark text for white bg
+  static const Color textGrey = Color(0xFF6B7280); // Subtitle text
+  static const Color textLight = Color(0xFFFFFFFF); // White text for dark headers
+  
+  // Utilities
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color error = Color(0xFFEF4444);
+  static const Color success = Color(0xFF10B981);
   
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFFF9325F), Color(0xFFFF5E80)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF232530), Color(0xFF16161E)],
+    colors: [Color(0xFFF43F5E), Color(0xFFE11D48)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
